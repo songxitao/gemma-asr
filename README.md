@@ -112,8 +112,8 @@ flowchart TD
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-username/gemma-asr-zh.git
-cd gemma-asr-zh
+git clone https://github.com/your-username/gemma-asr.git
+cd gemma-asr
 
 # 创建并激活自包含虚拟环境
 python -m venv .venv
@@ -125,13 +125,12 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
 ```
 
-### 2. 模型准备
+### 2. 基础模型底座说明
 
-下载 Google 原生模型权重（或放入本地目录）：
-```bash
-# 确保本地 models/google/embeddinggemma-2 存在
-python -c "from transformers import AutoModel; AutoModel.from_pretrained('google/embeddinggemma-2')"
-```
+本项目基于 Google 官方开源的 [`google/embeddinggemma-2`](https://huggingface.co/google/embeddinggemma-2) 音频编码塔：
+- 训练与推理脚本原生支持直接指定 Hugging Face 官方标识符 `--encoder_id google/embeddinggemma-2`（在线自动缓存）；
+- 若在离线或受限网络环境运行，亦可直接指定本地权重目录路径（如 `--encoder_id models/google/embeddinggemma-2`）；
+- *注：本项目代码不分发亦不转存 Google 原生大模型权重，请遵循 Google Gemma 许可协议自行获取。*
 
 ### 3. 数据导入与分片（AISHELL-1）
 

@@ -11,10 +11,14 @@ __pycache__/
 # Cache and local tooling
 .cache/
 .claude/
+# Local scratch, tickets, and memory
+.scratch/
 charter.md
 findings.md
 HANDOFF*.md
 asrexample.txt
+
+# Media and model artifacts
 *.wav
 *.flac
 *.mp3
@@ -23,7 +27,11 @@ asrexample.txt
 *.pt
 *.safetensors
 
-# Local scratch and logs
+# Local download & scratch scripts
+download_*.bat
+scripts/download_*.py
+scripts/prepare_smoke_data.py
+scripts/probe_chinese.py
 setup_env.bat
 run_probe.bat
 
