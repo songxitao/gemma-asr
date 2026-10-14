@@ -125,12 +125,23 @@ pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
 ```
 
-### 2. 基础模型底座说明
+### 2. 基础模型准备
 
-本项目基于 Google 官方开源的 [`google/embeddinggemma-2`](https://huggingface.co/google/embeddinggemma-2) 音频编码塔：
-- 训练与推理脚本原生支持直接指定 Hugging Face 官方标识符 `--encoder_id google/embeddinggemma-2`（在线自动缓存）；
-- 若在离线或受限网络环境运行，亦可直接指定本地权重目录路径（如 `--encoder_id models/google/embeddinggemma-2`）；
-- *注：本项目代码不分发亦不转存 Google 原生大模型权重，请遵循 Google Gemma 许可协议自行获取。*
+本项目基于 Google 官方开源的多模态表征模型：
+👉 **Hugging Face 官方主页**：[`google/embeddinggemma-2`](https://huggingface.co/google/embeddinggemma-2)
+
+#### 模型配置与调用方式（支持在线或离线）：
+- **方式 A（在线自动拉取）**：
+  脚本原生支持直接传入 Hugging Face 模型 ID，首次运行时将由 HuggingFace 自动下载并缓存：
+  ```bash
+  --encoder_id google/embeddinggemma-2
+  ```
+- **方式 B（本地离线目录）**：
+  推荐使用官方 `huggingface-cli` 工具将权重下载至本地目录（例如 `models/google/embeddinggemma-2`）：
+  ```bash
+  huggingface-cli download google/embeddinggemma-2 --local-dir models/google/embeddinggemma-2
+  ```
+  并在启动训练或推理时通过 `--encoder_id models/google/embeddinggemma-2` 直接调用。
 
 ### 3. 数据导入与分片（AISHELL-1）
 
