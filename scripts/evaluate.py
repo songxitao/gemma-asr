@@ -67,11 +67,11 @@ def main():
         rows.append((name, es.hours, s, audio_s / max(compute_s, 1e-9)))
 
     if rank == 0:
-        print(f"\n{'set':14s} {'hours':>6s} {'utts':>7s} {'WER':>7s} {'CER':>7s} {'WER-notone':>10s} {'speed (x RT, rank0)':>20s}")
+        print(f"\n{'set':14s} {'hours':>6s} {'utts':>7s} {'CER':>7s} {'P-CER':>7s} {'speed (x RT, rank0)':>20s}")
         for name, hours, s, speed in rows:
-            print(f"{name:14s} {hours:6.1f} {s['utts']:7d} {s['wer']:7.2%} {s['cer']:7.2%} {s['wer_notone']:10.2%} {speed:20.0f}")
+            print(f"{name:14s} {hours:6.1f} {s['utts']:7d} {s['cer']:7.2%} {s['pcer']:7.2%} {speed:20.0f}")
         if rows:
-            print(f"{'AVERAGE':14s} {'':6s} {'':7s} {sum(r[2]['wer'] for r in rows) / len(rows):7.2%}")
+            print(f"{'AVERAGE':14s} {'':6s} {'':7s} {sum(r[2]['cer'] for r in rows) / len(rows):7.2%}")
     if world > 1:
         dist.destroy_process_group()
 

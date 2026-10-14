@@ -99,14 +99,15 @@ def evaluate(model, units, eval_sets, rank, world, device, max_batch_seconds):
             example = (batch["texts"][-1], hyps[-1])
         counts = counts.all_reduce(device)
         results[name] = counts.summary()
-        if rank == 0 and counts.ref_words:
-            print(f"  [eval] {name:12s} WER {results[name]['wer']:6.2%}  CER {results[name]['cer']:6.2%}  "
-                  f"WER(no tone) {results[name]['wer_notone']:6.2%}  ({es.hours:.1f}h)", flush=True)
+        if rank == 0 and counts.ref_chars:
+            print(f"  [eval] {name:12s} CER {results[name]['cer']:6.2%}  "
+                  f"P-CER {results[name]['pcer']:6.2%}  ({es.hours:.1f}h)", flush=True)
             if example:
                 print(f"         ref: {example[0]}\n         hyp: {example[1]}", flush=True)
     model.train()
-    if results:
-        results["avg_wer"] = sum(r["wer"] for r in results.values()) / len(results)
+    eval_metrics = [r for r in results.values() if isinstance(r, dict) and "cer" in r]
+    if eval_metrics:
+        results["avg_cer"] = sum(r["cer"] for r in eval_metrics) / len(eval_metrics)
     return results
 
 
@@ -259,11 +260,11 @@ def main():
                 metrics_f.write(json.dumps({"step": step, "eval": res}) + "\n")
                 metrics_f.flush()
                 if wb:
-                    wb.log({f"eval/{k}/wer": v["wer"] for k, v in res.items() if isinstance(v, dict)}, step=step)
-                if res["avg_wer"] < best:
-                    best = res["avg_wer"]
+                    wb.log({f"eval/{k}/cer": v["cer"] for k, v in res.items() if isinstance(v, dict)}, step=step)
+                if res.get("avg_cer", float("inf")) < best:
+                    best = res["avg_cer"]
                     save("best.pt", {"eval": res})
-                    log(f"  new best avg WER {best:.2%} -> best.pt")
+                    log(f"  new best avg CER {best:.2%} -> best.pt")
         if step % args.save_every == 0 or step == args.max_steps:
             save("last.pt")
 

@@ -3,3 +3,9 @@ data/
 runs/
 __pycache__/
 *.pyc
+charter.md
+findings.md
+models/
+setup_env.bat
+run_probe.bat
+

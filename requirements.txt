@@ -1,12 +1,14 @@
 # torch: install the build matching your CUDA driver first if needed, e.g.
 #   pip install torch --index-url https://download.pytorch.org/whl/cu126
-torch>=2.6
+torch>=2.5
 transformers>=5.19      # EmbeddingGemma 2 support
 huggingface_hub[hf_xet]
-pyarrow
-soundfile>=0.12          # libsndfile >= 1.1 for mp3 decoding
+pyarrow<18              # numpy 1.x compatibility
+soundfile>=0.12         # libsndfile >= 1.1 for mp3 decoding
 soxr
-numpy
+numpy<2.0
 jiwer>=3.0
 sentencepiece
 tokenizers
+pypinyin
+pytest

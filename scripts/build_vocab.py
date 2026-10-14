@@ -19,7 +19,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--data_dir", default="data/prepared")
     ap.add_argument("--out", default=None)
-    ap.add_argument("--model_id", default="google/embeddinggemma-2")
+    ap.add_argument("--model_id", default="models/google/embeddinggemma-2")
     ap.add_argument("--min_count", type=int, default=2, help="rarer Gemma tokens map to <unk>")
     args = ap.parse_args()
     out = args.out or os.path.join(args.data_dir, "units.json")
