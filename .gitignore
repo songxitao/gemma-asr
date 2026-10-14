@@ -1,11 +1,30 @@
 .venv/
 data/
 runs/
+models/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Cache and local tooling
+.cache/
+.claude/
 charter.md
 findings.md
-models/
+HANDOFF*.md
+asrexample.txt
+*.wav
+*.flac
+*.mp3
+*.tar.gz
+*.parquet
+*.pt
+*.safetensors
+
+# Local scratch and logs
 setup_env.bat
 run_probe.bat
+
 
