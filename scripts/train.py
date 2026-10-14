@@ -7,6 +7,12 @@ Single GPU:   python scripts/train.py --data_dir data/prepared --out_dir runs/vi
 `--max_batch_seconds` is padded audio per GPU per step; the global batch is that x world size.
 """
 
+# Windows CRT conflict prevention: import sentencepiece before pyarrow
+try:
+    import sentencepiece  # noqa: F401
+except ImportError:
+    pass
+
 import argparse
 import json
 import math
@@ -32,13 +38,13 @@ def parse_args():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data_dir", default="data/prepared")
     ap.add_argument("--units", default=None, help="default: <data_dir>/units.json")
-    ap.add_argument("--out_dir", default="runs/vi")
+    ap.add_argument("--out_dir", default="runs/zh")
     ap.add_argument("--train_sources", nargs="*", default=None, help="default: all sources in <data_dir>/train")
     ap.add_argument("--source_weights", default="{}", help='JSON, e.g. \'{"fleurs": 3, "vivoice": 0.5}\'')
     ap.add_argument("--eval_split", default="valid")
     ap.add_argument("--max_eval_utts", type=int, default=1500, help="per eval source")
     # model
-    ap.add_argument("--encoder_id", default="google/embeddinggemma-2")
+    ap.add_argument("--encoder_id", default="models/google/embeddinggemma-2")
     ap.add_argument("--d_model", type=int, default=512)
     ap.add_argument("--n_layers", type=int, default=6)
     ap.add_argument("--n_heads", type=int, default=8)
@@ -49,20 +55,20 @@ def parse_args():
     ap.add_argument("--freeze_head", action="store_true")
     ap.add_argument("--no_specaug", action="store_true")
     # optimization
-    ap.add_argument("--max_steps", type=int, default=20000)
-    ap.add_argument("--max_batch_seconds", type=float, default=1200.0)
+    ap.add_argument("--max_steps", type=int, default=1500)
+    ap.add_argument("--max_batch_seconds", type=float, default=300.0)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--encoder_lr", type=float, default=5e-5, help="lr for unfrozen encoder layers")
-    ap.add_argument("--warmup_steps", type=int, default=1000)
+    ap.add_argument("--warmup_steps", type=int, default=200)
     ap.add_argument("--min_lr_ratio", type=float, default=0.05)
     ap.add_argument("--weight_decay", type=float, default=0.01)
     ap.add_argument("--grad_clip", type=float, default=1.0)
-    ap.add_argument("--num_workers", type=int, default=10)
+    ap.add_argument("--num_workers", type=int, default=2)
     ap.add_argument("--seed", type=int, default=1234)
     ap.add_argument("--log_every", type=int, default=50)
-    ap.add_argument("--eval_every", type=int, default=2000)
-    ap.add_argument("--save_every", type=int, default=2000)
-    ap.add_argument("--resume", default=None, help="path to a checkpoint (e.g. runs/vi/last.pt)")
+    ap.add_argument("--eval_every", type=int, default=500)
+    ap.add_argument("--save_every", type=int, default=500)
+    ap.add_argument("--resume", default=None, help="path to a checkpoint (e.g. runs/zh/last.pt)")
     ap.add_argument("--wandb", default=None, help="wandb project name (optional)")
     return ap.parse_args()
 

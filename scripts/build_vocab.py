@@ -4,6 +4,12 @@
     python scripts/build_vocab.py --data_dir data/prepared --out data/prepared/units.json
 """
 
+# Windows CRT conflict prevention: import sentencepiece before pyarrow
+try:
+    import sentencepiece  # noqa: F401
+except ImportError:
+    pass
+
 import argparse
 import os
 import sys
