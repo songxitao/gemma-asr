@@ -90,7 +90,7 @@ flowchart TD
 ### 2. 训练全景收敛指标
 
 <p align="center">
-  <img src="docs/images/training_metrics.png" width="900" alt="Training Metrics Overview"/>
+  <img src="docs/training_metrics.png" width="900" alt="Training Metrics Overview"/>
 </p>
 
 | 训练步数 (Steps) | CTC Loss | 验证集 CER (字错率) | 验证集 P-CER (发音音错率) | 显存占用 (VRAM) | 实时处理倍率 |
