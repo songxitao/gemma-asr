@@ -81,10 +81,14 @@ SOURCES = {
         repo="doof-ferb/gigaspeech2_vie", text="transcription",
         splits={"valid": ["data/validation-*"], "test": ["data/test-*"]},
     ),
-    # PhoAudiobook ~940h. Gated with manual approval -> off by default, add with --sources ... phoaudiobook
-    "phoaudiobook": dict(
-        repo="thivux/phoaudiobook", text="text", default=False,
-        splits={"train": ["data/train-*"], "valid": ["data/validation-*"], "test": ["data/test-*"]},
+    # AISHELL-1 via Hugging Face parquet shards (~178h)
+    "aishell1": dict(
+        repo="SpeechColab/aishell", text="transcription", default=False,
+        splits={
+            "train": ["data/train-*.parquet", "train-*.parquet", "*train-*.parquet"],
+            "valid": ["data/validation-*.parquet", "validation-*.parquet", "*validation-*.parquet"],
+            "test": ["data/test-*.parquet", "test-*.parquet", "*test-*.parquet"],
+        },
     ),
 }
 DEFAULT_SOURCES = [k for k, v in SOURCES.items() if v.get("default", True)]
@@ -108,10 +112,13 @@ def download(source: str, splits: list[str], raw_dir: str, max_workers: int) -> 
 
 def local_files(source: str, split: str, raw_dir: str) -> list[str]:
     root = os.path.join(raw_dir, source)
+    if not os.path.exists(root) and os.path.exists(raw_dir):
+        root = raw_dir
     files = []
     for pat in SOURCES[source]["splits"].get(split, []):
         files += [f for f in glob.glob(os.path.join(root, "**", "*.parquet"), recursive=True)
-                  if fnmatch.fnmatch(os.path.relpath(f, root), pat)]
+                  if fnmatch.fnmatch(os.path.relpath(f, root).replace("\\", "/"), pat)
+                  or fnmatch.fnmatch(os.path.basename(f), pat)]
     return sorted(set(files))
 
 
@@ -140,7 +147,7 @@ def process_file(job: tuple) -> dict:
     source, split, in_path, out_path, text_col, min_dur, max_dur, delete_raw = job
     stats_path = out_path + ".stats.json"
     if os.path.exists(out_path) and os.path.exists(stats_path):
-        with open(stats_path) as f:
+        with open(stats_path, "r", encoding="utf-8") as f:
             return json.load(f)
     st = Counter()
     hours = 0.0
@@ -173,7 +180,7 @@ def process_file(job: tuple) -> dict:
                 st["skip_decode"] += 1
                 continue
             dur = len(x) / SR
-            if dur < min_dur or dur > max_dur:
+            if (min_dur is not None and dur < min_dur) or (max_dur is not None and dur > max_dur):
                 st["skip_duration"] += 1
                 continue
             rows["audio"].append(encode_flac(x))
@@ -188,8 +195,8 @@ def process_file(job: tuple) -> dict:
     writer.close()
     os.replace(tmp, out_path)
     result = {"source": source, "split": split, "file": out_path, "hours": hours, **st}
-    with open(stats_path, "w") as f:
-        json.dump(result, f)
+    with open(stats_path, "w", encoding="utf-8") as f:
+        json.dump(result, f, ensure_ascii=False)
     if delete_raw:
         os.remove(in_path)
     return result
@@ -461,12 +468,13 @@ def main():
         cfg = SOURCES[s]
         for split in args.splits:
             files = local_files(s, split, args.raw_dir)
-            if args.max_files_per_source:
-                files = files[: args.max_files_per_source]
+            max_files = args.max_files_per_split or args.max_files_per_source or 0
+            if max_files:
+                files = files[: max_files]
             for f in files:
                 name = os.path.splitext(os.path.basename(f))[0]
                 out = os.path.join(args.out_dir, split, s, f"{name}.parquet")
-                jobs.append((s, split, f, out, cfg["text"], args.min_dur, args.max_dur, args.delete_raw))
+                jobs.append((s, split, f, out, cfg["text"], args.min_dur, max_dur, args.delete_raw))
     # big files first for better load balancing
     jobs.sort(key=lambda j: -os.path.getsize(j[2]) if os.path.exists(j[2]) else 0)
     print(f"[convert] {len(jobs)} files with {args.workers} workers", flush=True)
@@ -488,13 +496,13 @@ def main():
     # merge with an existing manifest (e.g. sources prepared in an earlier run)
     path = os.path.join(args.out_dir, "manifest.json")
     if os.path.exists(path):
-        with open(path) as f:
+        with open(path, "r", encoding="utf-8") as f:
             old = json.load(f)
         for split, d in old.items():
             for src, v in d.items():
                 manifest.setdefault(split, {}).setdefault(src, v)
-    with open(path, "w") as f:
-        json.dump(manifest, f, indent=1)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=1, ensure_ascii=False)
     print("\nsplit        source         hours     utts   dropped(text/dur/decode)")
     for split, d in sorted(manifest.items()):
         for src, v in sorted(d.items()):
