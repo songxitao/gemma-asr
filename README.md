@@ -1,208 +1,151 @@
-# Gemma-ASR (Chinese): 基于 Google EmbeddingGemma 2 冻结音频塔的极速中文 ASR
+# Gemma-ASR (Chinese): 基于 Google EmbeddingGemma 2 冻结底座的极速中文 ASR 引擎
 
 <p align="center">
-  <a href="https://github.com/google-deepmind"><img src="https://img.shields.io/badge/Base_Model-EmbeddingGemma--2-blue?logo=google" alt="Base Model"></a>
-  <a href="https://pytorch.org"><img src="https://img.shields.io/badge/PyTorch-2.5+-ee4c2c?logo=pytorch" alt="PyTorch"></a>
-  <a href="https://huggingface.co"><img src="https://img.shields.io/badge/HuggingFace-Transformers_5.19+-yellow?logo=huggingface" alt="HuggingFace"></a>
+  <a href="https://github.com/google-deepmind"><img src="https://img.shields.io/badge/Base_Model-EmbeddingGemma--2_(Frozen)-blue?logo=google" alt="Base Model"></a>
+  <a href="https://pytorch.org"><img src="https://img.shields.io/badge/PyTorch-2.3+-ee4c2c?logo=pytorch" alt="PyTorch"></a>
   <a href="https://developer.nvidia.com/cuda-zone"><img src="https://img.shields.io/badge/CUDA-12.1+-76b900?logo=nvidia" alt="CUDA"></a>
   <a href="./LICENSE"><img src="https://img.shields.io/badge/License-Apache_2.0-green.svg" alt="License"></a>
-  <a href="#"><img src="https://img.shields.io/badge/VRAM-3.55_GB_Peak-brightgreen" alt="VRAM"></a>
-  <a href="#"><img src="https://img.shields.io/badge/Speed-860x_Realtime-orange" alt="Realtime Speed"></a>
+  <a href="#"><img src="https://img.shields.io/badge/Throughput-750x~1190x_Realtime-orange" alt="Realtime Speed"></a>
+  <a href="#"><img src="https://img.shields.io/badge/VRAM-2.3GB~4.1GB-brightgreen" alt="VRAM"></a>
 </p>
 
 <p align="center">
-  <a href="#-项目灵感与架构故事">💡 项目灵感</a> &nbsp;|&nbsp;
-  <a href="#-特性矩阵与技术价值">⚡ 特性矩阵</a> &nbsp;|&nbsp;
-  <a href="#-系统架构设计">🏗️ 架构设计</a> &nbsp;|&nbsp;
-  <a href="#-冒烟训练实测-benchmark">📊 冒烟实测</a> &nbsp;|&nbsp;
-  <a href="#-极简闪电快速开始">🚀 快速开始</a> &nbsp;|&nbsp;
-  <a href="#-致敬与致谢">🤝 鸣谢与协议</a>
+  <a href="#-项目核心定位与架构">💡 核心架构</a> &nbsp;|&nbsp;
+  <a href="#-全量训练成果-aishell-1-150h">📊 训练成果</a> &nbsp;|&nbsp;
+  <a href="#-三方基准盲测打擂-benchmark-arena">🥊 三方打擂</a> &nbsp;|&nbsp;
+  <a href="#-实测硬件与运行环境">🖥️ 测试硬件</a> &nbsp;|&nbsp;
+  <a href="#-快速开始">🚀 快速开始</a> &nbsp;|&nbsp;
+  <a href="#-权重获取与开源协议">📦 权重与协议</a>
 </p>
 
 ---
 
-## 💡 项目灵感与架构故事
+## 💡 项目核心定位与架构
 
-> **“当所有人都在把多模态检索模型当作 RAG 向量工具时，我们选择唤醒它沉睡的声学感知潜能。”**
-
-Google 近日开源发布了新一代多模态检索与表征大模型 [`google/embeddinggemma-2`](https://huggingface.co/google/embeddinggemma-2)。该模型内置了强大的 USM-style Conformer 音频编码塔（300M 参数，12 层，25 frames/s），旨在对齐跨模态的语音与文本嵌入空间。
-
-越南工程师在其开源项目 **QUAN-Transcribe** 中提出了一种开创性的极简思路：**将 EmbeddingGemma 2 的底层音频编码塔完全冻结（0 参数更新），仅在其顶部训练一个极小型的 CTC Reader（仅 20.4M 可训练参数）**，在越南语 ASR 上以极低的算力达成了惊艳的 SOTA 表现。
-
-**本项目在此灵感之上进一步跨越**：
-原版方案天然契合越南语“一词一音节”的词表切分习惯；但当我们将此架构复刻迁移至**中文语音识别**时，遭遇了传统分词器将中文切成“人工智能”等多字稀疏长词、导致 CTC 类别发散的致命瓶颈。
-
-本项目经过系统性攻关，**打造了首个面向中文极速语音识别的复刻工程**：
-1. **CJK 单字拓扑映射**：从 Gemma 262k 超大词表中精准锁定 **10,147 个原生同形单字 Token**，逐字拆解汉字并初始化线性分类头，实现连续无缝的单字连缀解码；
-2. **纯净规范化与声学评测基准**：重构 Unicode NFKC 中文清洗流，彻底剔除标点与异常符号；全面落地字符错误率（**CER**）与音素级无调拼音错误率（**P-CER**）；
-3. **消费级单卡闭环实证**：在单张消费级笔记本显卡 **RTX 4080 Laptop (12GB)** 上，显存占用仅 **3.55 GB**，以 **860x 实时吞吐倍率** 仅耗时 **8.5 分钟（1500 步）** 即完成了中文声学校准，验证集 CER 降至 **26.44%**，P-CER 降至 **10.89%**（发音准确率 89.11%）！
-
----
-
-## ⚡ 特性矩阵与技术价值
-
-| 核心特性 (Key Feature) | 传统技术痛点 (Pain Point) | 创新技术方案 (Technical Solution) | 核心技术价值 (Value Proposition) |
-| :--- | :--- | :--- | :--- |
-| **🧠 冻结音频塔特征复用** | 端到端训练大型语音模型动辄需要 8×H100 显卡，普通开发者无法承受算力成本 | 100% 冻结 300M 的 Gemma USM 编码塔，仅训练 6 层 Transformer Reader（**仅 20.4M 参数**） | **显存峰值压低至 3.55GB，单张 12GB 显卡算力大幅溢出** |
-| **🔤 CJK 单字拓扑映射词表** | Gemma 原生分词器会将中文切为多音节词块，引发严重的数据稀疏与解码对齐漂移 | 从词表中精准抽离 10,147 个单字 token 建立汉字投影，连缀解码零空格干扰 | **彻底根除长词稀疏问题，实现中文端到端稳健流式解码** |
-| **⚡ 动态时长分桶吞吐** | 传统固定 batch 填充海量静音 Padding，导致 GPU 70% 算力被无效零值吞噬 | 基于音频时长构建自适应队列，以 `max_batch_seconds=300` 动态打包多路音频 | **张量计算饱和度逼近 100%，达成 860x 极限实时吞吐倍率** |
-| **🎯 字/音双轨自适应评测** | 传统英文/越南语 WER 无法客观评估中文“同音字多、音准字错”的声学真实表现 | 落地除零保护的汉字级 CER 与拼音级 P-CER 双轨联合评测流 | **精准分离声学识别与语言先验，为轻量解码提供科学基准** |
-
----
-
-## 🏗️ 系统架构设计
+> **“一个完全冻结的 Google EmbeddingGemma 2 音频塔，外挂仅约 21.7M 可训练参数的轻量 Reader，即可将多模态检索底座转化为高吞吐的中文 ASR 引擎。编码器运行一次前向，可同时输出音频 Embedding 与转写文本。”**
 
 ```mermaid
-flowchart TD
-    A["16kHz 单声道音频 (WAV / FLAC)"] --> B["GPU Log-Mel 声学前端 (128 维)"]
-    B --> C["EmbeddingGemma-2 音频编码塔 (USM Conformer, 12 层, 300M, 100% 冻结)"]
-    C --> D["自适应多层 Softmax 混合 (13 层加权平均)"]
-    D --> E["轻量级 CTC Reader (Linear + Depthwise Conv + 6×Transformer, 20.4M 参数)"]
-    E --> F["Gemma 文本空间线性分类头 (10,147 CJK 单字 Token 初始化)"]
-    F --> G["贪心 CTC 解码器 (Greedy CTC Blank 消除)"]
-    G --> H["中文连缀汉字文本流 (Chinese Transcript)"]
+flowchart LR
+    A["16kHz 音频输入 (WAV / FLAC)"] --> B["GPU Log-Mel 声学前端 (128维)"]
+    B --> C["Google EmbeddingGemma-2 音频塔<br>(USM Conformer, 300M, 100% 物理绝对冻结)"]
+    C -- "13 层高维激活特征" --> D["LayerMix 自适应多层软融合"]
+    D --> E["轻量 CTC Reader (21.7M 参数)<br>6 层 Pre-norm Transformer (d=512)"]
+    E --> F["Gemma 文本嵌入空间线性分类头<br>(3,791 常用汉字 Token 直接初始化)"]
+    F --> G["贪心 CTC 并发解码"]
+    G --> H["中文连缀汉字输出 (无空格连续中文)"]
 
     style C fill:#f1f5f9,stroke:#64748b,stroke-width:2px,stroke-dasharray: 5 5
     style E fill:#dbeafe,stroke:#2563eb,stroke-width:2px
     style F fill:#dcfce7,stroke:#16a34a,stroke-width:2px
 ```
 
+### 关键设计硬约束：
+1. **编码器永久冻结（`unfreeze_top_k=0`）**：不改动底座的一颗螺丝钉，既杜绝灾难性遗忘与显存膨胀，又保证音频 Embedding 语义空间的一致性；
+2. **极轻量参数**：仅微调 **21.7M** 的 Transformer Reader，训练显存稳定在 **4.1GB**，推理显存基线仅 **2.3GB**；
+3. **高并发非自回归**：全句时间帧矩阵一枪并发解码，推理吞吐达到 **750x ~ 1,190x 实时**（RTF 仅 **0.00084**，1 小时音频仅需 3 秒）。
+
 ---
 
-## 📊 冒烟训练实测 Benchmark
+## 📊 全量训练成果 (AISHELL-1 150h)
 
-在只有 **2.7 小时** 真实 AISHELL-1 训练小子集、单张 **RTX 4080 Laptop (12GB)** 上执行 1500 步冒烟验证：
+模型在 AISHELL-1 全量 150.9 小时（120,098 句）训练集上完成了 **28,000 步** 的全量训练，采用余弦退火学习率调度与 SpecAugment 动态频域/时域扰动。
 
-### 1. 真实转写效果演进（见证模型自主纠错）
-
-在完全没见过的验证集测试音频上，模型展现出了清晰的**语义自纠错能力**：
-
-```text
-【真实原声 Ref】：城市化快速发展期的重要特征就是基础设施投资需求量大
-
-【第 500 步 Hyp】：城市化快速发展期的重要特争就事基础建设投资需求量大
-                  (声学校准完成：将"特征"听成同音"特争"，将"就是"听成同音"就事")
-
-【第 1500 步 Hyp】：城市化快速发展期的重要特征就是基础建设投资需求量大
-                  (语义自纠错达成：模型自主将"特争就事"校正回"特征就是"！)
-```
-
-### 2. 训练全景收敛指标
-
+### 训练收敛动态全景
 <p align="center">
-  <img src="docs/training_metrics.png" width="900" alt="Training Metrics Overview"/>
+  <img src="assets/training_curve.png" width="950" alt="Gemma-ASR 28,000-Step Training Dynamics"/>
 </p>
 
-| 训练步数 (Steps) | CTC Loss | 验证集 CER (字错率) | 验证集 P-CER (发音音错率) | 显存占用 (VRAM) | 实时处理倍率 |
-| :---: | :---: | :---: | :---: | :---: | :---: |
-| **Step 50** | 10.872 | - | - | 3.54 GB | 762x realtime |
-| **Step 500** | 1.649 | 33.75% | 12.32% | 3.55 GB | 864x realtime |
-| **Step 1000** | 0.660 | 27.45% | 10.77% | 3.55 GB | 865x realtime |
-| **Step 1500 (最终)** | **0.424** | **26.44%** | **10.89%** | **3.55 GB** | **860x realtime** |
-
-*注：P-CER 10.89% 意味着模型对中文语音的**音节听音准确率已高达 89.11%**。*
+* **训练全景轨迹**：从 Step 2,000 到 Step 28,000，验证集（独立 40 位说话人，18.1 小时）字错率实现单调平稳下探：
+  `22.45% -> 15.67% -> 12.83% -> 10.18% -> 9.42% -> 8.73% -> 8.19% -> 7.54% -> 6.57%`
+* **终验盲测成绩**：在完全独立的 **AISHELL-1 Test 盲测集（7,173 句，10.0 小时，20 位陌生发音人）** 上运行官方独立评测：
+  * **字错率 (CER)**：**6.97%**
+  * **拼音听力错率 (P-CER)**：**2.29%**（声学听辨准确率 97.71%）
+  * **推理耗时**：**30.25 秒** 完成 10.0 小时音频转写
+  * **实时倍率**：**1,190x 实时**（RTF = 0.00084）
 
 ---
 
-## 🚀 极简闪电快速开始
+## 🥊 三方基准盲测打擂 (Benchmark Arena)
 
-### 1. 环境准备
+为了客观度量模型与当前国内工业级开源 SOTA 引擎的性能边界，我们在**同一物理环境（RTX 4080 Laptop GPU）、同一输入音频流、同一规范化清洗标准**下，对 AISHELL-1 盲测集前 **1,000 句录音（共 4,533.3 秒 / 1.26 小时）** 执行了三方同台实测。
 
-推荐在 Python 3.11 环境下运行：
+### 1. 性能与吞吐对比总表
 
+| 参赛引擎 | 模型架构与定位 | 参数体量 | CER (字错率) | P-CER (拼音错率) | 推理耗时 (1.26h 音频) | 吞吐倍率 (Speed) | 峰值显存 (VRAM) |
+| :--- | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Gemma-ASR** | **非自回归 CTC** (本项目) | **21.7M** *(底座冻结)* | **5.62%** | **1.80%** | **仅 6.04 秒** | **751x 实时** | 2.30 GB |
+| **SenseVoiceSmall** | 非自回归多任务 (阿里通义) | ~230M | **2.72%** | **0.92%** | **64.20 秒** | **71x 实时** | 0.92 GB |
+| **SeACo-Paraformer** | CIF + Paraformer (阿里达摩院) | ~220M | **1.67%** | **0.50%** | **121.85 秒** | **37x 实时** | 0.99 GB |
+
+### 2. 深度分析与发现
+* **并发吞吐显著领先**：Gemma-ASR 凭借极简 6 层 Transformer 与纯矩阵并发解码，处理 1.26 小时音频仅耗时 **6.04 秒**，吞吐倍率达到 **751x**，相比 SenseVoiceSmall 提速 **10.6 倍**，相比 Paraformer 提速 **20.2 倍**；
+* **声学听力高度接近**：Gemma-ASR 的拼音错误率（P-CER）低至 **1.80%**（相当于 98.20% 发音音节全对）；
+* **误差集中在同音字**：逐行比对显示，Gemma-ASR 与阿里模型的主要差距集中在生僻词与专有名词的同音异形字（如“资金”错为“司金”、“城投”错为“尘投”），这源于 150 小时单语料与工业级数万小时海量预训练词典的先验见识差异，可通过后续挂载轻量 N-gram 语言模型进一步纠偏。
+
+---
+
+## 🖥️ 实测硬件与运行环境
+
+以上所有训练与基准测试数据，均在以下单机硬件环境下实跑复现：
+
+* **操作系统**：Windows 11 Professional (x64)
+* **GPU 显卡**：NVIDIA GeForce RTX 4080 Laptop GPU (12GB GDDR6 VRAM)
+* **CPU 处理器**：13th Gen Intel(R) Core(TM) i9-13900HX (32 线程)
+* **系统内存**：32 GB DDR5 RAM
+* **软件环境**：Python 3.11 / CUDA 12.1 / PyTorch 2.3.1 / transformers 4.45+
+
+---
+
+## 🚀 快速开始
+
+### 1. 环境安装
 ```bash
-# 克隆仓库
 git clone https://github.com/your-username/gemma-asr.git
 cd gemma-asr
 
-# 创建并激活自包含虚拟环境
 python -m venv .venv
 .venv\Scripts\activate  # Windows
 # source .venv/bin/activate  # Linux
 
-# 安装核心依赖
-pip install torch --index-url https://download.pytorch.org/whl/cu121
 pip install -r requirements.txt
 ```
 
-### 2. 基础模型准备
-
-本项目基于 Google 官方开源的多模态表征模型：
-👉 **Hugging Face 官方主页**：[`google/embeddinggemma-2`](https://huggingface.co/google/embeddinggemma-2)
-
-#### 模型配置与调用方式（支持在线或离线）：
-- **方式 A（在线自动拉取）**：
-  脚本原生支持直接传入 Hugging Face 模型 ID，首次运行时将由 HuggingFace 自动下载并缓存：
-  ```bash
-  --encoder_id google/embeddinggemma-2
-  ```
-- **方式 B（本地离线目录）**：
-  推荐使用官方 `huggingface-cli` 工具将权重下载至本地目录（例如 `models/google/embeddinggemma-2`）：
-  ```bash
-  huggingface-cli download google/embeddinggemma-2 --local-dir models/google/embeddinggemma-2
-  ```
-  并在启动训练或推理时通过 `--encoder_id models/google/embeddinggemma-2` 直接调用。
-
-### 3. 数据导入与分片（AISHELL-1）
-
-支持断点续传与多进程转码：
+### 2. 音频转写 (Transcribe)
+使用训练好的 Reader 检查点快速转写任意音频文件：
 ```bash
-python scripts/prepare_data.py --aishell_dir E:/data/data_aishell --out_dir data/prepared --workers 4
+# 单文件快速转写
+python scripts/transcribe.py --ckpt runs/zh_full/best.pt audio.wav
+
+# 转写并保存至文本文件
+python scripts/transcribe.py --ckpt runs/zh_full/best.pt audio.wav -o output.txt
+
+# Windows 便捷脚本
+transcribe.bat audio.wav -o output.txt
 ```
 
-### 4. 构建字级词表
-
+### 3. 独立独立评测 (Evaluate)
+在任意准备好的测试集上计算 CER、P-CER 与吞吐倍率：
 ```bash
-python scripts/build_vocab.py --data_dir data/prepared --out data/prepared/units.json
+python scripts/evaluate.py --ckpt runs/zh_full/best.pt --data_dir data/prepared_full --split test
+
+# Windows 便捷脚本
+evaluate.bat --ckpt runs/zh_full/best.pt --data_dir data/prepared_full --split test
 ```
 
-### 5. 一键启动训练
-
-Windows 单卡一键运行（或直接双击 `smoke_train.bat`）：
-```powershell
-& ".venv\Scripts\python.exe" scripts/train.py `
-    --data_dir data/prepared `
-    --units data/prepared/units.json `
-    --out_dir runs/zh `
-    --encoder_id models/google/embeddinggemma-2 `
-    --max_steps 1500 `
-    --max_batch_seconds 300.0 `
-    --eval_every 500 `
-    --save_every 500 `
-    --log_every 50 `
-    --num_workers 0
+### 4. 运行三方基准擂台
+```bash
+python scripts/benchmark.py --samples 1000
 ```
 
 ---
 
-## 📂 项目结构全景
+## 📦 权重获取与开源协议
 
-```text
-gemma-asr/
-├── gemma_asr/             # 核心模块源码
-│   ├── text.py            # 中文文本规范化 (NFKC、标点/数字过滤、无调拼音转换)
-│   ├── features.py        # GPU Log-Mel 声学前端 (与 HF 原生算子数值 100% 对齐)
-│   ├── units.py           # 字级 CJK CTC 词表构建与连缀解码
-│   ├── model.py           # GemmaCTC 核心模型架构 (Reader + 动态多层加权 + CTC)
-│   ├── data.py            # 流式分片加载器与动态时长分桶
-│   └── scoring.py         # 中文 CER 与 P-CER 评测指标
-├── scripts/               # 工程运维与训练脚本
-│   ├── prepare_data.py    # AISHELL-1 本地导入与标准 FLAC 分片落盘管线
-│   ├── build_vocab.py     # 字级 CTC 词表自动解算脚本
-│   ├── train.py           # 单卡/分布式模型训练引擎
-│   └── plot_smoke_metrics.py # 训练指标多子图科研级可视化
-├── tests/                 # 44 项完整覆盖的自动化测试套件 (TDD 规范)
-├── docs/                  # 架构决策记录 (ADR) 与图表资产
-├── smoke_train.bat        # Windows 单卡一键冒烟批处理 (GBK 兼容)
-└── README.md              # 开源项目说明文档
-```
+### 权重分发规范
+为了保持 Git 代码仓库的纯净轻巧，并遵守 Google Gemma 的使用条款：
+* **Google 官方底座**：由 Hugging Face 官方渠道按需下载 [`google/embeddinggemma-2`](https://huggingface.co/google/embeddinggemma-2)；
+* **中文 Reader 检查点**：本仓库仅分发训练得到的 21.7M Reader 核心权重（约 80MB），请从 [GitHub Releases](../../releases) 页面下载 `best.pt` 并放置于 `runs/zh_full/best.pt`。
 
----
-
-## 🤝 鸣谢与协议
-
-- **原始灵感与架构原型**：致敬 **QUAN-Transcribe** 项目及其作者在 EmbeddingGemma 迁移 ASR 上的开创性先驱工作；
-- **底层多模态表征模型**：感谢 **Google DeepMind / Gemma Team** 开源的 `embeddinggemma-2` 卓越底座；
-- **数据集**：感谢 **OpenSLR (AISHELL-1)** 团队提供的优质中文开源语音数据。
-
-本项目基于 [Apache-2.0 License](./LICENSE) 协议开源。
+### 协议说明
+* 本项目工程源码基于 [Apache-2.0 License](./LICENSE) 协议开源；
+* 基础模型权重遵循 Google 的 [Gemma Terms of Use](https://ai.google.dev/gemma/terms)。

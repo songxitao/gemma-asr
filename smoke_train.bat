@@ -9,7 +9,7 @@ echo 正在启动 1500 步冒烟训练...
 echo 观察要点：显存稳定性、Loss 平稳下降、CER 逐步收敛。
 echo.
 
-"E:\project\gemma-asr\.venv\Scripts\python.exe" scripts\train.py ^
+"%~dp0.venv\Scripts\python.exe" scripts\train.py ^
     --data_dir data/prepared ^
     --units data/prepared/units.json ^
     --out_dir runs/zh_smoke ^

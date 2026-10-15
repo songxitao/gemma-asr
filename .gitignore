@@ -1,9 +1,25 @@
 .venv/
+venv/
+env/
 data/
 runs/
 models/
+model/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.vscode/
+.idea/
+*.log
+.DS_Store
+Thumbs.db
 *.pyo
 *.pyd
 .pytest_cache/
@@ -24,8 +40,21 @@ asrexample.txt
 *.mp3
 *.tar.gz
 *.parquet
+*.arrow
+*.csv
 *.pt
+*.pth
 *.safetensors
+*.bin
+*.onnx
+*.h5
+*.pkl
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
 
 # Local download & scratch scripts
 download_*.bat

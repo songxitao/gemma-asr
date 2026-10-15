@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 METRICS_PATH = PROJECT_ROOT / "runs" / "zh_smoke" / "metrics.jsonl"
 OUT_IMG = PROJECT_ROOT / "runs" / "zh_smoke" / "training_metrics.png"
-ARTIFACT_DIR = Path(r"C:\Users\song\.gemini\antigravity\brain\3fc294b2-d9e3-4e3d-9ec9-761f51bb4c0b")
+ARTIFACT_DIR = Path(os.getenv("ARTIFACT_DIR", str(PROJECT_ROOT / "assets")))
 
 # Configure Matplotlib fonts for Windows Chinese rendering
 plt.rcParams["font.sans-serif"] = ["Microsoft YaHei", "SimHei", "DejaVu Sans", "sans-serif"]

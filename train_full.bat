@@ -28,7 +28,11 @@ if /i "%1"=="resume" (
     set RESUME_ARG=--resume runs/zh_full/last.pt
 )
 
-set PYTHON_EXE=E:\project\gemma-asr\.venv\Scripts\python.exe
+if exist "%~dp0.venv\Scripts\python.exe" (
+    set "PYTHON_EXE=%~dp0.venv\Scripts\python.exe"
+) else (
+    set "PYTHON_EXE=python"
+)
 
 echo [启动] 正在启动全量训练引擎，训练进度将在下方实时打印...
 echo [提示] 亦可另开终端运行 python scripts/watch_metrics.py 查看看板！
