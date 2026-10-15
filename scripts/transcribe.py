@@ -7,6 +7,7 @@ Long audio is cut into <= --chunk_seconds pieces at the quietest point near each
 and all chunks are decoded in batches.
 """
 
+import sentencepiece  # noqa: F401  # Windows CRT clash protection: must import before torch/pyarrow
 import argparse
 import os
 import sys
@@ -51,6 +52,7 @@ def main():
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--chunk_seconds", type=float, default=30.0)
     ap.add_argument("--batch_seconds", type=float, default=1200.0)
+    ap.add_argument("--output", "-o", default=None, help="Output file path (UTF-8)")
     ap.add_argument("audio", nargs="+")
     args = ap.parse_args()
 
@@ -62,6 +64,7 @@ def main():
     if device.type == "cpu":
         model.float()
 
+    all_outputs = []
     for path in args.audio:
         x = load_audio(path)
         chunks = split_quiet(x, args.chunk_seconds)
@@ -76,8 +79,20 @@ def main():
         if device.type == "cuda":
             torch.cuda.synchronize()
         dt = time.time() - t0
-        print(f"==> {path}  ({len(x) / SR:.1f}s audio, {dt:.2f}s, {len(x) / SR / dt:.0f}x realtime)")
-        print(" ".join(t for t in texts if t))
+        audio_duration = len(x) / SR
+        speed = audio_duration / max(dt, 1e-6)
+        print(f"==> {path}  ({audio_duration:.1f}s audio, {dt:.2f}s, {speed:.0f}x realtime)")
+        full_text = "".join(t for t in texts if t)
+        print(full_text)
+        all_outputs.append((path, full_text))
+
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as f:
+            if len(all_outputs) == 1:
+                f.write(all_outputs[0][1] + "\n")
+            else:
+                for path, txt in all_outputs:
+                    f.write(f"{path}\t{txt}\n")
 
 
 if __name__ == "__main__":
